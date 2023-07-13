@@ -421,18 +421,29 @@ impl<'a, 'eng> InstructionVerifier<'a, 'eng> {
 
     fn verify_binary_op(
         &self,
-        _op: &BinaryOpKind,
+        op: &BinaryOpKind,
         arg1: &Value,
         arg2: &Value,
     ) -> Result<(), IrError> {
+        use BinaryOpKind::*;
         let arg1_ty = arg1
             .get_type(self.context)
             .ok_or(IrError::VerifyBinaryOpIncorrectArgType)?;
         let arg2_ty = arg2
             .get_type(self.context)
             .ok_or(IrError::VerifyBinaryOpIncorrectArgType)?;
-        if !arg1_ty.eq(self.context, &arg2_ty) || !arg1_ty.is_uint(self.context) {
-            return Err(IrError::VerifyBinaryOpIncorrectArgType);
+
+        match op {
+            Add | Sub | Mul | Div | And | Or | Xor | Mod => {
+                if !arg1_ty.eq(self.context, &arg2_ty) || !arg1_ty.is_uint(self.context) {
+                    return Err(IrError::VerifyBinaryOpIncorrectArgType);
+                }
+            }
+            Rsh | Lsh => {
+                if !arg1_ty.is_uint(self.context) || !arg2_ty.is_uint64(self.context) {
+                    return Err(IrError::VerifyBinaryOpIncorrectArgType);
+                }
+            }
         }
 
         Ok(())
